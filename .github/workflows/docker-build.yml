@@ -132,15 +132,31 @@ jobs:
         output: 'trivy-results.sarif'
         exit-code: '0'
     
-    - name: Check if SARIF file exists
+    - name: Ensure SARIF file exists
       run: |
-        if [ -f "trivy-results.sarif" ]; then
-          echo "SARIF file exists"
-          ls -la trivy-results.sarif
-        else
-          echo "SARIF file not found, creating empty SARIF file"
-          echo '{"version":"2.1.0","$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","runs":[{"tool":{"driver":{"name":"Trivy","version":"unknown"}},"results":[]}]}' > trivy-results.sarif
+        ls -la || true
+        if [ ! -f "trivy-results.sarif" ]; then
+          echo "Creating empty SARIF file"
+          cat > trivy-results.sarif << 'EOF'
+        {
+          "version": "2.1.0",
+          "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+          "runs": [
+            {
+              "tool": {
+                "driver": {
+                  "name": "Trivy",
+                  "version": "unknown"
+                }
+              },
+              "results": []
+            }
+          ]
+        }
+        EOF
         fi
+        echo "Final SARIF file check:"
+        ls -la trivy-results.sarif || echo "SARIF file still missing"
     
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
